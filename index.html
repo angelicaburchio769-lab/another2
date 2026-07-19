@@ -1,0 +1,1150 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>松阳县非遗文化知识图谱</title>
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5/dist/echarts.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Microsoft YaHei', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            display: flex;
+            gap: 20px;
+            max-width: 1800px;
+            margin: 0 auto;
+            height: calc(100vh - 40px);
+        }
+        
+        .chart-container {
+            flex: 2;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        
+        #chart {
+            width: 100%;
+            height: 100%;
+        }
+        
+        .sidebar {
+            flex: 1;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+            overflow-y: auto;
+            padding: 20px;
+        }
+        
+        .card {
+            background: #f8f9fa;
+            border-left: 4px solid #667eea;
+            padding: 15px;
+            margin-bottom: 15px;
+            border-radius: 8px;
+            animation: slideIn 0.3s ease;
+        }
+        
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .card-title {
+            font-size: 16px;
+            font-weight: bold;
+            color: #667eea;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .card-content {
+            font-size: 13px;
+            color: #555;
+            line-height: 1.6;
+        }
+        
+        .sub-nodes {
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 1px solid #e0e0e0;
+        }
+        
+        .sub-node-item {
+            background: white;
+            padding: 10px;
+            margin-bottom: 8px;
+            border-radius: 4px;
+            border: 1px solid #e0e0e0;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .sub-node-item:hover {
+            background: #667eea;
+            color: white;
+            transform: translateX(5px);
+        }
+        
+        .sub-node-item.active {
+            background: #667eea;
+            color: white;
+        }
+        
+        .sub-node-item::before {
+            content: '→';
+            color: #667eea;
+            font-size: 12px;
+        }
+        
+        .sub-node-item:hover::before,
+        .sub-node-item.active::before {
+            color: white;
+        }
+        
+        .empty-state {
+            text-align: center;
+            padding: 40px 20px;
+            color: #999;
+        }
+        
+        .legend {
+            font-size: 12px;
+            color: #666;
+            padding: 10px;
+            background: #f0f0f0;
+            border-radius: 4px;
+            margin-bottom: 15px;
+        }
+        
+        .legend-item {
+            display: inline-block;
+            margin-right: 20px;
+            margin-bottom: 5px;
+        }
+        
+        .legend-dot {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            margin-right: 5px;
+            vertical-align: middle;
+        }
+
+        .details {
+            margin-top: 15px;
+            padding: 15px;
+            background: white;
+            border-radius: 4px;
+            border: 1px solid #e0e0e0;
+        }
+
+        .detail-text {
+            font-size: 13px;
+            color: #555;
+            line-height: 1.8;
+            text-align: justify;
+        }
+
+        .back-btn {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-bottom: 15px;
+            transition: background 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            font-size: 13px;
+        }
+
+        .back-btn:hover {
+            background: #5568d3;
+        }
+
+        .nav-arrow {
+            font-size: 14px;
+            opacity: 0.6;
+            margin-left: auto;
+        }
+
+        .sub-node-item:hover .nav-arrow {
+            opacity: 1;
+        }
+
+        .breadcrumb {
+            font-size: 12px;
+            color: #888;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 1px dashed #e0e0e0;
+        }
+
+        .breadcrumb-item {
+            cursor: pointer;
+            color: #667eea;
+            text-decoration: underline;
+        }
+
+        .breadcrumb-item:hover {
+            color: #555;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="chart-container">
+            <div id="chart"></div>
+        </div>
+        <div class="sidebar">
+            <div class="legend">
+                <div class="legend-item">
+                    <span class="legend-dot" style="background: #667eea;"></span>
+                    <span>核心节点</span>
+                </div>
+                <div class="legend-item">
+                    <span class="legend-dot" style="background: #764ba2;"></span>
+                    <span>一级分类</span>
+                </div>
+                <div class="legend-item">
+                    <span class="legend-dot" style="background: #f97316;"></span>
+                    <span>二级分类</span>
+                </div>
+                <div class="legend-item">
+                    <span class="legend-dot" style="background: #0ea5e9;"></span>
+                    <span>内容节点</span>
+                </div>
+            </div>
+            <div id="info-panel">
+                <div class="empty-state">
+                    <div style="font-size: 40px; margin-bottom: 10px;">👆</div>
+                    <p>点击图谱中的节点查看详情</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const knowledgeData = {
+            "松阳县非遗文化": {
+                description: "松阳县非物质文化遗产知识图谱，涵盖大岭根村竹编产业、松阳茶叶、松阳古法造纸、松阳船灯四大核心非遗项目。",
+                subNodes: {
+                    "大岭根村竹编产业": {
+                        description: "大岭根村地处浙西南山区，竹编产业历史悠久，从零散家庭副业逐步转型为常态化传统手工艺产业。",
+                        details: "大岭根村地处浙西南山区，本地竹林资源储备充足，村民专程前往邻近的松阳竹编之乡系统学习精细竹编手艺。村合作社牵头扶持竹编产业，竹编从零散家庭副业逐步转型为全村农户常态化传统手工艺产业，给村里留守老人、妇女提供灵活就近就业渠道。",
+                        children: {
+                            "产业历史": {
+                                description: "包括竹编产业的种植起源、发展历程和早期价值。",
+                                details: "大岭根村地处浙西南山区，本地竹林资源储备充足，村民专程前往邻近的松阳竹编之乡系统学习精细竹编手艺。村合作社牵头扶持竹编产业，竹编从零散家庭副业逐步转型为全村农户常态化传统手工艺产业。",
+                                children: {
+                                    "种植起源": "大岭根村地处浙西南山区，本地竹林资源储备充足，村民专程前往邻近的松阳竹编之乡系统学习精细竹编手艺",
+                                    "产业发展历程": "村合作社牵头扶持竹编产业，竹编从零散家庭副业逐步转型为全村农户常态化传统手工艺产业",
+                                    "早期产业价值": "竹编产业给村里留守老人、妇女提供灵活就近就业渠道，增加村民收入，留存乡村匠人精神集体记忆"
+                                }
+                            },
+                            "传承困境": {
+                                description: "包括原料获取、劳动力老龄化和收入短板等问题。",
+                                details: "上等编织毛竹生长在高山陡坡，砍伐、运输需要高强度体力，老一辈匠人常年劳作腰腿劳损。早年做竹编的村民如今年纪偏大，本地青壮年大多外出务工，天然竹材供应出现断层。",
+                                children: {
+                                    "原料获取难题": "上等编织毛竹生长在高山陡坡，砍伐、运输都需要高强度体力，老一辈匠人常年劳作腰腿劳损，无法上山取材",
+                                    "劳动力老龄化矛盾": "早年做竹编的村民如今年纪偏大，本地青壮年大多外出务工，天然竹材供应出现断层",
+                                    "收入短板现状": "竹编采用订单式生产模式，只有接到订单才开工制作，村民每月收入不固定，竹编仅作为家庭副业"
+                                }
+                            },
+                            "技艺创新": {
+                                description: "村民通过互联网发现工业化塑料材料，决定用PET聚酯塑料条替代天然竹子。",
+                                details: "村里老人年迈无力采竹、年轻人不会加工竹料，村民通过互联网发现工业化塑料材料，决定用PET聚酯塑料条替代天然竹子。",
+                                children: {
+                                    "材料替换缘由": "村里老人年迈无力采竹、年轻人不会加工竹料，村民通过互联网发现工业化塑料材料，决定用PET聚酯塑料条替代天然竹子",
+                                    "PET材料采购方式": "村民直接在电商平台采购不同规格的PET扁丝、圆丝以缩短准备时长",
+                                    "PET材料产品优势": "塑料条柔韧带有仿竹天然纹理，同时具备防水、防霉、可清洗的特性，色彩款式更加丰富多样"
+                                }
+                            },
+                            "产业运营": {
+                                description: "普通村民负责手工编织，村书记统筹对外洽谈、统一售卖和拓展渠道。",
+                                details: "普通村民只负责全部手工编织制作工序，对外洽谈客户、统一售卖成品、拓展销售渠道的工作全部由村书记统筹负责。",
+                                children: {
+                                    "产销分工主体": "普通村民只负责全部手工编织制作工序，对外洽谈客户、统一售卖成品、拓展销售渠道的工作全部由村书记统筹负责",
+                                    "农户收入主次结构": "村民家庭核心收入依靠茶叶种植，采摘的茶叶鲜叶统一卖给村内炒茶商户，竹编手工收入仅用来补贴家用"
+                                }
+                            },
+                            "传承落地成果": {
+                                description: "由村妇联、村集体经济合作社联合出资建设竹编特色巾帼共富工坊。",
+                                details: "由大岭根村村妇联、村集体经济合作社联合出资建设竹编特色巾帼共富工坊，融合竹编制作、非遗传承教学、技能培训、文创体验多重功能。",
+                                children: {
+                                    "工坊建设主体": "由大岭根村村妇联、村集体经济合作社联合出资建设竹编特色巾帼共富工坊",
+                                    "工坊功能板块": "工坊融合竹编制作、非遗传承教学、技能培训、文创体验多重功能，内部设置非遗文化展示墙、成品陈列区、沉浸式手工体验空间",
+                                    "工坊民生价值": "工坊吸纳妇女就近就业，常态化开设竹编培训课程，帮助妇女家门口增收，以手工业助推乡村振兴落地"
+                                }
+                            },
+                            "产业当前发展难题": {
+                                description: "包括品牌宣传短板和非遗传承危机。",
+                                details: "本村竹编非遗品牌缺少数字化线上传播、跨界文创营销手段，对外曝光度低，产品订单数量少，外部拓展市场空间狭小。",
+                                children: {
+                                    "品牌宣传短板": "本村竹编非遗品牌缺少数字化线上传播、跨界文创营销手段，对外曝光度低，产品订单数量少，外部拓展市场空间狭小",
+                                    "非遗传承危机": "产品销路持续低迷会打击传承人持续制作、招收学徒教学的积极性，长期发展极易出现传统竹编技艺断层、产业自主创新动力衰减"
+                                }
+                            },
+                            "未来传承发展期盼": {
+                                description: "依托'非遗+电商''非遗+文旅'双向融合模式，实现可持续发展。",
+                                details: "依托'非遗+电商''非遗+文旅'双向融合模式，线上线下同步加大竹编产品全方位宣传推广力度。",
+                                children: {
+                                    "产业融合发展路径": "依托'非遗+电商''非遗+文旅'双向融合模式，线上线下同步加大竹编产品全方位宣传推广力度",
+                                    "长期可持续发展目标": "全方位拓宽竹编成品外销渠道，提升手工艺产业自身创收造血能力，通过生产实现非遗技艺生产性保护，搭建技艺代代传承的良性循环体系"
+                                }
+                            }
+                        }
+                    },
+                    "松阳茶叶": {
+                        description: "松阳千年种茶历史，几乎与松阳县城历史一样长，是当地核心产业。",
+                        details: "松阳拥有千年种茶历史，几乎与松阳县城历史一样长。端午药茶是当地特色民俗茶，每年农历五月制作，茶叶搭配山间草药，制成后可供全年饮用。",
+                        children: {
+                            "产业历史": {
+                                description: "松阳千年种茶历史，特色民俗茶端午药茶。",
+                                details: "松阳拥有千年种茶历史，几乎与松阳县城历史一样长。端午药茶是当地特色民俗茶，每年农历五月制作。",
+                                children: {
+                                    "种植起源": "千年种茶历史，几乎与松阳县城历史一样长",
+                                    "特色民俗茶": "端午药茶：每年农历五月制作，茶叶搭配山间草药，制成后可供全年饮用"
+                                }
+                            },
+                            "茶叶品种": {
+                                description: "包括主流商品茶和特色民俗茶。",
+                                details: "主流商品茶有松阳银猴、香茶、黄金叶、黄金芽，特色民俗茶为端午药茶。",
+                                children: {
+                                    "主流商品茶": {
+                                        description: "松阳银猴、香茶、黄金叶、黄金芽。",
+                                        details: "松阳银猴、香茶、黄金叶、黄金芽是松阳的主流商品茶品种。",
+                                        children: {
+                                            "松阳银猴": "",
+                                            "香茶": "",
+                                            "黄金叶": "",
+                                            "黄金芽": ""
+                                        }
+                                    },
+                                    "特色民俗茶": "端午药茶"
+                                }
+                            },
+                            "种植原料": {
+                                description: "包括种植经营主体、自然生产条件和用工模式。",
+                                details: "普通农户以茶叶为核心主业，竹编手工仅副业，产出鲜叶统一卖给村内炒茶商户。专业茶商加工厂负责规模化茶叶加工和品牌运营。",
+                                children: {
+                                    "种植经营主体": {
+                                        description: "普通农户和专业茶商加工厂。",
+                                        details: "普通农户以茶叶为核心主业，竹编手工仅副业。专业茶商加工厂负责规模化茶叶加工和品牌运营。",
+                                        children: {
+                                            "普通农户": "茶叶为核心主业，竹编手工仅副业，产出鲜叶统一卖给村内炒茶商户",
+                                            "专业茶商加工厂": "规模化茶叶加工、品牌运营"
+                                        }
+                                    },
+                                    "自然生产条件": "灾害防控：虫害每年频发需定期治理；早年旱涝灾害多，现有完善水利设施，旱涝问题大幅缓解",
+                                    "用工模式": {
+                                        description: "农户自主采茶和加工厂季节性用工。",
+                                        details: "农户家庭自主采茶劳作，加工厂采用季节性用工，采茶旺季员工数量大幅增加。",
+                                        children: {
+                                            "农户": "家庭自主采茶劳作",
+                                            "加工厂": "季节性用工，采茶旺季员工数量大幅增加"
+                                        }
+                                    }
+                                }
+                            },
+                            "加工工艺": {
+                                description: "村内炒茶商户收购农户鲜叶集中加工。",
+                                details: "村内炒茶商户收购农户鲜叶集中加工，进行批量加工和成品包装。",
+                                children: {
+                                    "加工主体": {
+                                        description: "村内炒茶商户和批量加工。",
+                                        details: "村内炒茶商户收购农户鲜叶集中加工，进行批量加工和成品包装。",
+                                        children: {
+                                            "村内炒茶商户": "收购农户鲜叶集中加工",
+                                            "批量加工": "成品包装"
+                                        }
+                                    }
+                                }
+                            },
+                            "市场流通": {
+                                description: "自有品牌'峰露源'，线上线下销售渠道。",
+                                details: "自有茶叶品牌'峰露源'由村内统一注册运营，线下销售为主力，线上通过电商平台零售。",
+                                children: {
+                                    "自有茶叶品牌": "峰露源（村内统一注册运营）",
+                                    "销售渠道": {
+                                        description: "线下销售和线上销售。",
+                                        details: "线下销售为主力，包括茶叶市场批发和门店零售；线上通过电商平台进行成品茶零售。",
+                                        children: {
+                                            "线下销售": "茶叶市场批发，门店零售",
+                                            "线上销售": "电商平台成品茶零售"
+                                        }
+                                    }
+                                }
+                            },
+                            "经济民生": {
+                                description: "村民收入构成和收入分层。",
+                                details: "村民核心收入来自茶叶种植和售卖，补充收入来自竹编手工副业。普通农户年收入约5-6万，规模化大户年收入可达50-60万。",
+                                children: {
+                                    "村民收入构成": {
+                                        description: "核心收入和补充收入。",
+                                        details: "村民核心收入来自茶叶种植和售卖，补充收入来自竹编手工副业。",
+                                        children: {
+                                            "核心收入": "茶叶种植、鲜叶/成品茶售卖",
+                                            "补充收入": "竹编手工副业"
+                                        }
+                                    },
+                                    "收入分层": {
+                                        description: "普通农户和规模化大户。",
+                                        details: "普通农户年收入约5-6万，规模化大户年收入可达50-60万。",
+                                        children: {
+                                            "普通农户": "年收入约5-6万",
+                                            "规模化大户": "年收入可达50-60万"
+                                        }
+                                    }
+                                }
+                            },
+                            "发展难题": {
+                                description: "包括茶园配套短板、土地政策限制、闲置配套资源和行业大环境制约。",
+                                details: "避暑设施不足，仅一座凉亭和一间小型茶室。茶园属于农民农业用地，变更土地用途难度高，无法新建民宿、咖啡馆等文旅配套建筑。",
+                                children: {
+                                    "茶园配套短板": "避暑设施不足：仅一座凉亭，一间小型茶室，夏季高温缺少游客停留空间，承载力不同",
+                                    "土地政策限制": "茶园属于农民农业用地，变更土地用途难度高，无法新建民宿、咖啡馆等文旅配套建筑",
+                                    "闲置配套资源": "周边大型酒店完工七八年，无投资主体入驻，长期空置未运营",
+                                    "行业大环境制约": "文旅市场行情低迷，项目投资回报率低，新项目落地困难；属于丽水全市共性产业难题"
+                                }
+                            },
+                            "未来规划": {
+                                description: "对标莫干山茶园模式，推进茶旅融合和品牌升级。",
+                                details: "可参考莫干山茶园模式，打造咖啡馆、高端民宿多元文旅配套业态。推进茶旅融合和品牌升级。",
+                                children: {
+                                    "对标发展案例": "可参考莫干山茶园模式：打造咖啡馆、高端民宿多元文旅配套业态",
+                                    "产业融合方向": {
+                                        description: "茶旅融合和品牌升级。",
+                                        details: "完善茶园避暑、休闲配套设施，开发茶园观光、采茶体验项目。依托'峰露源'品牌拓宽线上线下销售渠道。",
+                                        children: {
+                                            "茶旅融合": "完善茶园避暑、休闲配套设施，开发茶园观光、采茶体验项目",
+                                            "品牌升级": "依托'峰露源'品牌拓宽线上线下销售渠道"
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "松阳古法造纸": {
+                        description: "400余年传承历史，大岭根全村古有造纸传统，周芳娣为第九代传人。",
+                        details: "松阳古法造纸拥有400余年传承历史，大岭根全村古有造纸传统。周芳娣为第九代传人，其父为市级传承人。现有1名学徒，实行师带徒教学，但存在老手体力不足、年轻人不愿入行的传承难题。",
+                        children: {
+                            "技艺历史与传承": {
+                                description: "400余年传承，九代家族传承，市级和县级传承人。",
+                                details: "松阳古法造纸拥有400余年传承历史，大岭根全村古有造纸传统。周芳娣为第九代传人，其父为市级传承人，周芳娣为县级唯一持证传承人。",
+                                children: {
+                                    "历史渊源": "400余年传承，大岭根全村古有造纸传统",
+                                    "家族脉络": "周芳娣第九代传人，父为市级传承人",
+                                    "持证传承人": "父亲（市级）、周芳娣（县级唯一）",
+                                    "学徒情况": "现有1名学徒，实行师带徒教学",
+                                    "传承难题": "老手体力不足，年轻人不愿入行"
+                                }
+                            },
+                            "大岭根古法造纸核心优势": {
+                                description: "包括原料生态优势、历史文脉优势、工艺品质优势、双工坊业态互补优势、文旅研学资源优势和非遗传承体系优势。",
+                                details: "本地结香就地取材，山林资源可持续再生，结香全株利用，山泉天然制浆，无工业化化学添加，纸张品质优良。",
+                                children: {
+                                    "原料生态优势": {
+                                        description: "本地结香就地取材，结香全株利用，山泉天然制浆。",
+                                        details: "本地结香就地取材，山林资源可持续再生，结香全株利用，山泉天然制浆，无工业化化学添加，纸张品质优良。",
+                                        children: {
+                                            "本地结香就地取材": "山林资源可持续再生",
+                                            "结香全株利用": "树皮造纸、花入药、枝干作燃料",
+                                            "山泉天然制浆": "无工业化化学添加，纸张品质优良"
+                                        }
+                                    },
+                                    "历史文脉优势": {
+                                        description: "松阳手工纸核心发源地，完整村落造纸文化遗存。",
+                                        details: "松阳手工纸核心发源地，完整村落造纸文化遗存，留存原生捞纸槽、乡村老作坊，活态历史场景，九代完整家族传承，非遗谱系正统清晰。",
+                                        children: {
+                                            "松阳手工纸核心发源地": "完整村落造纸文化遗存",
+                                            "留存原生捞纸槽": "乡村老作坊，活态历史场景",
+                                            "九代完整家族传承": "非遗谱系正统清晰"
+                                        }
+                                    },
+                                    "工艺品质优势": {
+                                        description: "完整保留70余道古法工序，7天慢工造一张纸。",
+                                        details: "完整保留70余道古法工序，无机械简化，7天慢工造一张纸，纸条韧适书画、古籍修复，按需定制纯皮纸、花草纸，覆盖多元市场需求。",
+                                        children: {
+                                            "完整保留70余道古法工序": "无机械简化",
+                                            "7天慢工造一张纸": "纸条韧适书画、古籍修复",
+                                            "按需定制": "纯皮纸、花草纸，覆盖多元市场需求"
+                                        }
+                                    },
+                                    "双工坊业态互补优势": {
+                                        description: "大岭根乡村工坊和统捐局城区工坊互补。",
+                                        details: "大岭根乡村工坊展示原生态古法生产实景，统捐局城区工坊作为老宅研学基地+纸文化民宿，动静结合，区别单一流水线生产工坊。",
+                                        children: {
+                                            "大岭根乡村工坊": "原生态古法生产实景",
+                                            "统捐局城区工坊": "老宅研学基地+纸文化民宿",
+                                            "动静结合": "区别单一流水线生产工坊"
+                                        }
+                                    },
+                                    "文旅研学资源优势": {
+                                        description: "对接小学课本，配套露营和文旅活动，地标纸艺灯具获省级文创金奖。",
+                                        details: "对接小学三年级造纸术课本，稳定研学客流，乡村工坊配套露营、户外文旅主题活动，地标纸艺灯具获2024浙江省文创金奖，辨识度高。",
+                                        children: {
+                                            "对接小学三年级造纸术课本": "稳定研学客流",
+                                            "乡村工坊配套露营": "户外文旅主题活动",
+                                            "地标纸艺灯具": "获2024浙江省文创金奖，辨识度高"
+                                        }
+                                    },
+                                    "非遗传承体系优势": {
+                                        description: "非遗传承人主理教学，村内百余村民掌握基础手艺。",
+                                        details: "非遗传承人主理教学，技艺正统规范，村内百余村民掌握基础手艺，民间储备充足，政府扶持乡村非遗工坊，推动技艺复兴。",
+                                        children: {
+                                            "非遗传承人主理教学": "技艺正统规范",
+                                            "村内百余村民掌握基础手艺": "民间储备充足",
+                                            "政府扶持乡村非遗工坊": "推动技艺复兴"
+                                        }
+                                    }
+                                }
+                            },
+                            "原料与制作工艺": {
+                                description: "本地结香为原料，细分七八十道工序，单张纸全程制作7天。",
+                                details: "原料为本地结香，树皮造纸、花入药、枝干作燃料。工序细分七八十道，研学简化20余道前置工序，单张纸全程制作7天。",
+                                children: {
+                                    "原料": "本地结香（树皮造纸、花入药、枝干作燃料）",
+                                    "工序总量": "细分七八十道，研学简化20余道前置工序",
+                                    "完整周期": "单张纸全程制作7天",
+                                    "标准流程": "备料→去皮→蒸煮→打浆→洗浆→捞纸→分纸→晾干",
+                                    "工艺创新": "纯皮纸（艺术家）、花草纸（研学体验）"
+                                }
+                            },
+                            "两大造纸工坊载体": {
+                                description: "大岭根村造纸工坊和统捐局造纸工坊。",
+                                details: "大岭根村造纸工坊为乡村原生基地，特色是原生态古法生产和乡村露营文旅配套。统捐局造纸工坊为城区研学基地，优势是古宅活化、近学校交通便利、配套纸文化民宿。",
+                                children: {
+                                    "大岭根村造纸工坊": {
+                                        description: "乡村原生基地。",
+                                        details: "大岭根村造纸工坊为乡村原生基地，特色是原生态古法生产和乡村露营文旅配套。",
+                                        children: {
+                                            "特色": "原生态古法生产、乡村露营文旅配套"
+                                        }
+                                    },
+                                    "统捐局造纸工坊": {
+                                        description: "城区研学基地。",
+                                        details: "统捐局造纸工坊为城区研学基地，优势是古宅活化、近学校交通便利、配套纸文化民宿。",
+                                        children: {
+                                            "优势": "古宅活化、近学校交通便利、配套纸文化民宿"
+                                        }
+                                    }
+                                }
+                            },
+                            "纸品与应用场景": {
+                                description: "包括研学体验用纸、专业用纸和文创产品。",
+                                details: "研学体验用纸适配小学课本，上半年客流旺季；专业用纸包括书法专用纸和古籍修复用纸；文创产品为松阳地标纸艺灯具，省级金奖伴手礼。",
+                                children: {
+                                    "研学体验用纸": "适配小学课本，上半年客流旺季",
+                                    "专业用纸": "书法专用纸、古籍修复用纸",
+                                    "文创产品": "松阳地标纸艺灯具（省级金奖伴手礼）"
+                                }
+                            },
+                            "技艺传播与推广渠道": {
+                                description: "包括线下展示、教学模式、产业融合和跨界运营。",
+                                details: "线下展示包括工坊工艺观摩、非遗民宿静态体验、线下展览。教学模式采用师带徒授艺和中小学研学实践课。",
+                                children: {
+                                    "线下展示": "工坊工艺观摩、非遗民宿静态体验、线下展览",
+                                    "教学模式": "师带徒授艺、中小学研学实践课",
+                                    "产业融合": "手工生产+沉浸式体验+民宿休憩+文创售卖",
+                                    "跨界运营": "艺术家合作、乡村露营主题文旅活动"
+                                }
+                            },
+                            "行业现状与发展困境": {
+                                description: "整体优势明显，但规模小，持证传承人稀少。",
+                                details: "整体优势包括原料/工艺/文脉/研学/文旅/传承六大核心竞争力，但规模模式为无标准化工厂的小型手工作坊运营，现存短板为持证传承人稀少、青年传承断层、难以规模化量产。",
+                                children: {
+                                    "整体优势": "原料/工艺/文脉/研学/文旅/传承六大核心竞争力",
+                                    "规模模式": "无标准化工厂，小型手工作坊运营",
+                                    "现存短板": "持证传承人稀少、青年传承断层、难以规模化量产"
+                                }
+                            }
+                        }
+                    },
+                    "松阳船灯": {
+                        description: "松阳古村落、水运农耕民俗的代表性非遗项目，起源于祈福丰收、驱邪保平安。",
+                        details: "松阳船灯起源于松阳古村落、水运农耕民俗，初衷是祈福丰收、驱邪保平安，经历了从简易竹灯到戏曲表演再到现代非遗的演变过程。",
+                        children: {
+                            "历史渊源": {
+                                description: "起源、初衷和演变过程。",
+                                details: "松阳船灯起源于松阳古村落、水运农耕民俗，初衷是祈福丰收、驱邪保平安，经历了从简易竹灯到戏曲表演再到现代非遗的演变过程。",
+                                children: {
+                                    "起源": "松阳古村落、水运农耕民俗",
+                                    "初衷": "祈福丰收、驱邪保平安",
+                                    "演变": "古简易竹灯→戏曲表演→现代非遗"
+                                }
+                            },
+                            "音乐特色": {
+                                description: "唱腔、伴奏和风格。",
+                                details: "唱腔为松阳本土方言小调，伴奏使用锣鼓、唢呐和传统民乐，风格轻快乡土、喜庆热闹。",
+                                children: {
+                                    "唱腔": "松阳本土方言小调",
+                                    "伴奏": "锣鼓、唢呐、传统民乐",
+                                    "风格": "轻快乡土、喜庆热闹"
+                                }
+                            },
+                            "文化内涵": {
+                                description: "农耕寓意、地域特色和社会意义。",
+                                details: "农耕寓意为风调雨顺、五谷丰登，地域特色是再现松阳古船运文化、浙南水乡民俗代表，社会意义是凝聚村落乡情、集体性民俗。",
+                                children: {
+                                    "农耕寓意": "风调雨顺、五谷丰登",
+                                    "地域特色": "再现松阳古船运文化、浙南水乡民俗代表",
+                                    "社会意义": "凝聚村落乡情、集体性民俗"
+                                }
+                            },
+                            "独特艺术价值": {
+                                description: "唯一性、差异性、综合性和活态文物。",
+                                details: "松阳船灯是浙西南独有的船形灯彩，与龙灯重威武、马灯重行军不同，船灯重温柔水乡意境，集手工艺+舞蹈+音乐+民俗仪式四位一体，是代代手工复制、保留明清民间艺术风貌的活态文物。",
+                                children: {
+                                    "唯一性": "浙西南独有的船形灯彩",
+                                    "差异性": "龙灯重威武、马灯重行军、船灯重温柔水乡意境",
+                                    "综合性": "手工艺+舞蹈+音乐+民俗仪式四位一体",
+                                    "活态文物": "代代手工复制，保留明清民间艺术风貌"
+                                }
+                            },
+                            "传承发展": {
+                                description: "艺术价值、现存问题和现代表现。",
+                                details: "艺术价值为竹编+彩绘+歌舞综合民间艺术，现存问题是传承人老龄化、年轻人断层，现代表现为非遗展览、文旅展演、校园研学。",
+                                children: {
+                                    "艺术价值": "竹编+彩绘+歌舞综合民间艺术",
+                                    "现存问题": "传承人老龄化、年轻人断层",
+                                    "现代表现": "非遗展览、文旅展演、校园研学"
+                                }
+                            },
+                            "表演形式": {
+                                description: "时间、人员和形式。",
+                                details: "表演时间为春节、元宵、乡村庙会，人员包括掌船人员、伴舞人员、民乐乐队，形式为巡游展演和唱山歌。",
+                                children: {
+                                    "时间": "春节、元宵、乡村庙会",
+                                    "人员": "掌船人员、伴舞人员、民乐乐队",
+                                    "形式": "巡游展演、唱山歌"
+                                }
+                            },
+                            "器物构造": {
+                                description: "骨架、饰面、结构和道具。",
+                                details: "骨架使用竹篾和铁丝，饰面使用彩纸、绸缎、剪纸、彩绘，结构包括船头花灯、船身彩灯、船尾流苏，道具包括船桨、彩扇、锣鼓、传统戏服。",
+                                children: {
+                                    "骨架": "竹篾、铁丝",
+                                    "饰面": "彩纸、绸缎、剪纸、彩绘",
+                                    "结构": "船头花灯、船身彩灯、船尾流苏",
+                                    "道具": "船桨、彩扇、锣鼓、传统戏服"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        };
+
+        const nodesData = [];
+        const linksData = [];
+        let nodeId = 0;
+        const nodeMap = {};
+        const nameToIdMap = {};
+        window.nodesData = nodesData;
+
+        const rootName = "松阳县非遗文化";
+        const rootId = nodeId++;
+        nodeMap[rootName] = rootId;
+        nameToIdMap[rootName] = rootId;
+        nodesData.push({
+            id: rootId,
+            name: rootName,
+            level: 0,
+            symbolSize: 100,
+            itemStyle: { color: '#667eea' },
+            data: knowledgeData[rootName]
+        });
+
+        Object.keys(knowledgeData[rootName].subNodes).forEach((category, idx) => {
+            const id = nodeId++;
+            const key = `${rootName}-${category}`;
+            nodeMap[key] = id;
+            nameToIdMap[category] = id;
+            nodesData.push({
+                id: id,
+                name: category,
+                level: 1,
+                symbolSize: 65,
+                itemStyle: { color: '#764ba2' },
+                data: knowledgeData[rootName].subNodes[category]
+            });
+            linksData.push({ source: rootId, target: id });
+        });
+
+        Object.keys(knowledgeData[rootName].subNodes).forEach(category => {
+            const parentKey = `${rootName}-${category}`;
+            const parentId = nodeMap[parentKey];
+            const subNodes = knowledgeData[rootName].subNodes[category].children;
+            Object.keys(subNodes).forEach(subNode => {
+                const subNodeValue = subNodes[subNode];
+                const key = `${parentKey}-${subNode}`;
+                const id = nodeId++;
+                nodeMap[key] = id;
+                
+                if (subNodeValue && typeof subNodeValue === 'object' && !Array.isArray(subNodeValue)) {
+                    nodesData.push({
+                        id: id,
+                        name: subNode,
+                        level: 2,
+                        symbolSize: 45,
+                        itemStyle: { color: '#f97316' },
+                        data: {
+                            description: subNodeValue.description || '',
+                            details: subNodeValue.details || '',
+                            children: subNodeValue.children || {}
+                        }
+                    });
+                    linksData.push({ source: parentId, target: id });
+
+                    Object.keys(subNodeValue.children || {}).forEach(child => {
+                        const childValue = subNodeValue.children[child];
+                        const childKey = `${key}-${child}`;
+                        const childId = nodeId++;
+                        nodeMap[childKey] = childId;
+
+                        if (childValue && typeof childValue === 'object' && !Array.isArray(childValue)) {
+                            nodesData.push({
+                                id: childId,
+                                name: child,
+                                level: 3,
+                                symbolSize: 35,
+                                itemStyle: { color: '#0ea5e9' },
+                                data: {
+                                    description: childValue.description || '',
+                                    details: childValue.details || '',
+                                    children: childValue.children || {}
+                                }
+                            });
+                            linksData.push({ source: id, target: childId });
+
+                            Object.keys(childValue.children || {}).forEach(grandChild => {
+                                const grandChildId = nodeId++;
+                                const grandChildKey = `${childKey}-${grandChild}`;
+                                nodeMap[grandChildKey] = grandChildId;
+                                nodesData.push({
+                                    id: grandChildId,
+                                    name: grandChild,
+                                    level: 4,
+                                    symbolSize: 28,
+                                    itemStyle: { color: '#10b981' },
+                                    data: { description: childValue.children[grandChild] }
+                                });
+                                linksData.push({ source: childId, target: grandChildId });
+                            });
+                        } else {
+                            nodesData.push({
+                                id: childId,
+                                name: child,
+                                level: 3,
+                                symbolSize: 35,
+                                itemStyle: { color: '#0ea5e9' },
+                                data: { description: childValue }
+                            });
+                            linksData.push({ source: id, target: childId });
+                        }
+                    });
+                } else {
+                    nodesData.push({
+                        id: id,
+                        name: subNode,
+                        level: 2,
+                        symbolSize: 45,
+                        itemStyle: { color: '#f97316' },
+                        data: { description: subNodeValue }
+                    });
+                    linksData.push({ source: parentId, target: id });
+                }
+            });
+        });
+
+        function layoutTree() {
+            const width = document.getElementById('chart').offsetWidth;
+            const height = document.getElementById('chart').offsetHeight;
+            const centerX = width / 2;
+            const centerY = height / 2;
+
+            nodesData.forEach(node => {
+                const level = node.level;
+                if (level === 0) {
+                    node.x = centerX;
+                    node.y = centerY;
+                } else if (level === 1) {
+                    const index = nodesData.filter(n => n.level === 1).indexOf(node);
+                    const angle = (index * Math.PI * 2) / 4 - Math.PI / 2;
+                    const radius = 200;
+                    node.x = centerX + Math.cos(angle) * radius;
+                    node.y = centerY + Math.sin(angle) * radius;
+                } else if (level === 2) {
+                    const parentIndex = nodesData.find(n => n.id === linksData.find(l => l.target === node.id).source);
+                    const siblings = nodesData.filter(n => {
+                        const link = linksData.find(l => l.target === n.id);
+                        return link && link.source === parentIndex.id && n.level === 2;
+                    });
+                    const siblingIndex = siblings.indexOf(node);
+                    const parentNode = nodesData.find(n => n.id === linksData.find(l => l.target === node.id).source);
+                    const angleOffset = (siblingIndex - (siblings.length - 1) / 2) * 0.4;
+                    const radius = 150;
+                    const baseAngle = Math.atan2(parentNode.y - centerY, parentNode.x - centerX);
+                    node.x = parentNode.x + Math.cos(baseAngle + angleOffset) * radius;
+                    node.y = parentNode.y + Math.sin(baseAngle + angleOffset) * radius;
+                } else if (level === 3) {
+                    const parentNode = nodesData.find(n => n.id === linksData.find(l => l.target === node.id).source);
+                    const siblings = nodesData.filter(n => {
+                        const link = linksData.find(l => l.target === n.id);
+                        return link && link.source === parentNode.id && n.level === 3;
+                    });
+                    const siblingIndex = siblings.indexOf(node);
+                    const angleOffset = (siblingIndex - (siblings.length - 1) / 2) * 0.35;
+                    const radius = 100;
+                    const baseAngle = Math.atan2(parentNode.y - centerY, parentNode.x - centerX);
+                    node.x = parentNode.x + Math.cos(baseAngle + angleOffset) * radius;
+                    node.y = parentNode.y + Math.sin(baseAngle + angleOffset) * radius;
+                } else if (level === 4) {
+                    const parentNode = nodesData.find(n => n.id === linksData.find(l => l.target === node.id).source);
+                    const siblings = nodesData.filter(n => {
+                        const link = linksData.find(l => l.target === n.id);
+                        return link && link.source === parentNode.id && n.level === 4;
+                    });
+                    const siblingIndex = siblings.indexOf(node);
+                    const angleOffset = (siblingIndex - (siblings.length - 1) / 2) * 0.3;
+                    const radius = 70;
+                    const baseAngle = Math.atan2(parentNode.y - centerY, parentNode.x - centerX);
+                    node.x = parentNode.x + Math.cos(baseAngle + angleOffset) * radius;
+                    node.y = parentNode.y + Math.sin(baseAngle + angleOffset) * radius;
+                }
+            });
+        }
+
+        layoutTree();
+
+        let selectedNodeId = null;
+        let isAnimating = true;
+
+        const chart = echarts.init(document.getElementById('chart'));
+        
+        function updateChart() {
+            const option = {
+                title: {
+                    text: '松阳县非遗文化知识图谱',
+                    left: 'center',
+                    top: 20,
+                    textStyle: { color: '#333', fontSize: 18, fontWeight: 'bold' }
+                },
+                tooltip: {
+                    trigger: 'item',
+                    formatter: function(params) {
+                        if (params.data) {
+                            return params.data.name;
+                        }
+                        return params.name;
+                    }
+                },
+                series: [{
+                    type: 'graph',
+                    layout: isAnimating ? 'force' : 'none',
+                    force: isAnimating ? {
+                        repulsion: 200,
+                        gravity: 0.05,
+                        edgeLength: [100, 250],
+                        layoutAnimation: true,
+                        friction: 0.6
+                    } : null,
+                    coordinateSystem: null,
+                    roam: true,
+                    draggable: false,
+                    data: nodesData.map(node => ({
+                        ...node,
+                        x: node.x,
+                        y: node.y,
+                        itemStyle: {
+                            ...node.itemStyle,
+                            shadowBlur: node.id === selectedNodeId ? 30 : 10,
+                            shadowColor: node.id === selectedNodeId ? node.itemStyle.color : 'rgba(0,0,0,0.2)',
+                            borderWidth: node.id === selectedNodeId ? 4 : 2,
+                            borderColor: node.id === selectedNodeId ? '#fff' : '#fff'
+                        },
+                        label: {
+                            show: true,
+                            formatter: node.name,
+                            fontSize: node.id === selectedNodeId ? 14 : 11,
+                            fontWeight: 'bold',
+                            color: node.id === selectedNodeId ? '#333' : '#666'
+                        },
+                        emphasis: {
+                            scale: true,
+                            scaleSize: 10,
+                            label: { show: true, fontSize: 14 },
+                            itemStyle: {
+                                borderWidth: 4,
+                                shadowBlur: 30,
+                                shadowColor: node.itemStyle.color
+                            }
+                        }
+                    })),
+                    links: linksData,
+                    lineStyle: {
+                        color: '#ccc',
+                        width: 1,
+                        opacity: 0.6,
+                        curveness: 0.1
+                    }
+                }]
+            };
+            chart.setOption(option, true);
+        }
+
+        updateChart();
+
+        setTimeout(() => {
+            isAnimating = false;
+            const option = chart.getOption();
+            if (option.series && option.series[0] && option.series[0].data) {
+                option.series[0].data.forEach((item, idx) => {
+                    if (item.x !== undefined && item.y !== undefined) {
+                        nodesData[idx].x = item.x;
+                        nodesData[idx].y = item.y;
+                    }
+                });
+            }
+            updateChart();
+        }, 5000);
+
+        function focusNode(nodeId) {
+            selectedNodeId = nodeId;
+            const node = nodesData.find(n => n.id === nodeId);
+            if (node) {
+                chart.dispatchAction({
+                    type: 'focusNodeAdjacency',
+                    seriesIndex: 0,
+                    dataIndex: nodesData.indexOf(node)
+                });
+                setTimeout(() => {
+                    chart.dispatchAction({
+                        type: 'showTip',
+                        seriesIndex: 0,
+                        dataIndex: nodesData.indexOf(node)
+                    });
+                }, 100);
+                updateChart();
+            }
+        }
+
+        let historyStack = [];
+
+        chart.on('click', function(params) {
+            if (params.data) {
+                selectedNodeId = params.data.id;
+                focusNode(params.data.id);
+                historyStack.push(params.data);
+                displayInfo(params.data);
+            }
+        });
+
+        function buildBreadcrumb(node) {
+            const path = [];
+            let current = node;
+            while (current) {
+                path.unshift(current);
+                const link = linksData.find(l => l.target === current.id);
+                current = link ? nodesData.find(n => n.id === link.source) : null;
+            }
+            return `
+                <div class="breadcrumb">
+                    ${path.map((item, idx) => `
+                        <span class="${idx === path.length - 1 ? '' : 'breadcrumb-item'}" 
+                              ${idx !== path.length - 1 ? `onclick="goToNode(${item.id}, event)"` : ''}>
+                            ${item.name}
+                        </span>
+                        ${idx < path.length - 1 ? ' › ' : ''}
+                    `).join('')}
+                </div>
+            `;
+        }
+
+        function displayInfo(node) {
+            const infoPanel = document.getElementById('info-panel');
+            let html = '';
+
+            if (historyStack.length > 1) {
+                html += `<button class="back-btn" onclick="goBack()">← 回到上一级</button>`;
+            }
+
+            html += buildBreadcrumb(node);
+
+            if (node.level === 0) {
+                html += `
+                    <div class="card">
+                        <div class="card-title">🏮 ${node.name}</div>
+                        <div class="card-content">${node.data.description}</div>
+                        <div class="sub-nodes">
+                            <strong>📚 非遗项目：</strong>
+                            ${Object.keys(node.data.subNodes).map((sub, idx) => `
+                                <div class="sub-node-item" onclick="jumpToNode('${rootName}-${sub}', event)">
+                                    <span>${idx + 1}. ${sub}</span>
+                                    <span class="nav-arrow">→</span>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                `;
+            } else if (node.level === 1) {
+                html += `
+                    <div class="card">
+                        <div class="card-title">📘 ${node.name}</div>
+                        <div class="card-content">${node.data.description}</div>
+                        <div class="details">
+                            <strong style="color: #667eea;">📄 详细信息：</strong>
+                            <div class="detail-text">${node.data.details}</div>
+                        </div>
+                        <div class="sub-nodes">
+                            <strong>🔍 子项目：</strong>
+                            ${Object.keys(node.data.children).map((child, idx) => `
+                                <div class="sub-node-item" onclick="jumpToNode('${rootName}-${node.name}-${child}', event)">
+                                    <span>${idx + 1}. ${child}</span>
+                                    <span class="nav-arrow">→</span>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                `;
+            } else if (node.level === 2) {
+                html += `
+                    <div class="card">
+                        <div class="card-title">📄 ${node.name}</div>
+                        <div class="details">
+                            <div class="detail-text">${node.data.description || ''}</div>
+                        </div>
+                        ${node.data.details ? `
+                            <div class="details">
+                                <strong style="color: #667eea;">📄 详细信息：</strong>
+                                <div class="detail-text">${node.data.details}</div>
+                            </div>
+                        ` : ''}
+                        ${node.data.children && Object.keys(node.data.children).length ? `
+                            <div class="sub-nodes">
+                                <strong>🔍 细分节点：</strong>
+                                ${Object.keys(node.data.children).map((child, idx) => {
+                                    const parentKey = linksData.find(l => l.target === node.id).source;
+                                    const parentNode = nodesData.find(n => n.id === parentKey);
+                                    return `<div class="sub-node-item" onclick="jumpToNode('${rootName}-${parentNode.name}-${node.name}-${child}', event)">
+                                        <span>${idx + 1}. ${child}</span>
+                                        <span class="nav-arrow">→</span>
+                                    </div>`;
+                                }).join('')}
+                            </div>
+                        ` : ''}
+                    </div>
+                `;
+            } else if (node.level === 3) {
+                html += `
+                    <div class="card">
+                        <div class="card-title">🔹 ${node.name}</div>
+                        <div class="details">
+                            <div class="detail-text">${node.data.description || ''}</div>
+                        </div>
+                        ${node.data.details ? `
+                            <div class="details">
+                                <strong style="color: #667eea;">📄 详细信息：</strong>
+                                <div class="detail-text">${node.data.details}</div>
+                            </div>
+                        ` : ''}
+                        ${node.data.children && Object.keys(node.data.children).length ? `
+                            <div class="sub-nodes">
+                                <strong>🔍 细分节点：</strong>
+                                ${Object.keys(node.data.children).map((child, idx) => {
+                                    const parentKey = linksData.find(l => l.target === node.id).source;
+                                    const parentNode = nodesData.find(n => n.id === parentKey);
+                                    const grandParentKey = linksData.find(l => l.target === parentNode.id).source;
+                                    const grandParentNode = nodesData.find(n => n.id === grandParentKey);
+                                    return `<div class="sub-node-item" onclick="jumpToNode('${rootName}-${grandParentNode.name}-${parentNode.name}-${node.name}-${child}', event)">
+                                        <span>${idx + 1}. ${child}</span>
+                                        <span class="nav-arrow">→</span>
+                                    </div>`;
+                                }).join('')}
+                            </div>
+                        ` : ''}
+                    </div>
+                `;
+            } else if (node.level === 4) {
+                html += `
+                    <div class="card">
+                        <div class="card-title">📍 ${node.name}</div>
+                        <div class="details">
+                            <div class="detail-text">${node.data.description || ''}</div>
+                        </div>
+                    </div>
+                `;
+            }
+
+            infoPanel.innerHTML = html;
+        }
+
+        window.goBack = function() {
+            if (historyStack.length > 1) {
+                historyStack.pop();
+                const prevNode = historyStack[historyStack.length - 1];
+                focusNode(prevNode.id);
+                displayInfo(prevNode);
+            }
+        };
+
+        window.goToNode = function(nodeId, event) {
+            if (event) event.stopPropagation();
+            const node = nodesData.find(n => n.id === nodeId);
+            if (node) {
+                historyStack = [];
+                focusNode(node.id);
+                displayInfo(node);
+            }
+        };
+
+        window.jumpToNode = function(key, event) {
+            event.stopPropagation();
+            const nodeId = nodeMap[key];
+            if (nodeId !== undefined) {
+                const node = nodesData.find(n => n.id === nodeId);
+                if (node) {
+                    historyStack.push(node);
+                    focusNode(nodeId);
+                    displayInfo(node);
+                }
+            }
+        };
+
+        window.addEventListener('resize', () => {
+            layoutTree();
+            chart.resize();
+            updateChart();
+        });
+    </script>
+</body>
+</html>
